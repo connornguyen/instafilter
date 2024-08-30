@@ -14,48 +14,83 @@ struct ContentView: View {
     
     @Query private var items: [Item]
     
-    @State private var pickerItems  = [PhotosPickerItem]()
-    @State private var selectedImage  = [Image]()
+    
+    @State private var selectedImage: PhotosPickerItem?
+    @State private var filterIntensity = 0.0
+    @State private var processedImage: Image?
+    
     var body: some View {
-        VStack {
-            
-                PhotosPicker(selection: $pickerItems,maxSelectionCount: 2, matching: .images) {
-                    Label("Select pictures", systemImage: "photo")
-                }
-            ScrollView {
-                ForEach(0..<selectedImage.count, id: \.self) { i in
-                    selectedImage[i]
-                        .resizable()
-                        .scaledToFit()
-                }
-            }
-        }
-        .onChange(of: pickerItems) {
-            Task {
-                selectedImage.removeAll()
-                for item in pickerItems {
-                    if let loadingImage = try await item.loadTransferable(type: Image.self) {
-                        selectedImage.append(loadingImage)
+        NavigationStack {
+            VStack {
+                PhotosPicker(selection: $selectedImage) {
+                    if let processedImage {
+                        processedImage
+                            .resizable()
+                            .scaledToFit()
+                    } else {
+                        ContentUnavailableView("No photo", systemImage: "photo.badge.plus", description: Text("Tap to import photo"))
                     }
-                    
                 }
+                .buttonStyle(.plain)  //This help button ignore the color changing when wrapped inside PhotoPicker
+                .onChange(of: selectedImage, loadImage) //Look for change of selectedIamge, then perform loadImage
+                
+                 
+                Spacer()
                 
             }
+            /*.onChange(of: $selectedImage) {
+                Task {
+                    if let loadingImage = try await selectedImage?.loadTransferable(type: Image.self) {
+                    }
+                }
+                }
+            } */
+            
+            Spacer()
+            
+            HStack {
+                Label("Intensity", systemImage: "slider.horizontal.3")
+                Slider(value: $filterIntensity)
+            }
+            
+            Spacer()
+            
+            HStack{
+                Button("Change filter", action: changeFilter)
+                    
+                Spacer()
+                
+                ShareLink(item: URL(string: "http://www.hackingwithswift.com")!, subject: Text("Learn swift here"), message: Text("There is 100 days with SwiftUI course.")) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                }
+            }
+            .padding(.horizontal)
+            .navigationTitle("Instafilter")
+            .toolbar {
+                PhotosPicker(selection: $selectedImage, matching: .images) {
+                    Label("Select pictures", systemImage: "photo.badge.plus")
+                }
+            }
         }
+        .padding()
         
-        ShareLink(item: URL(string: "http://www.hackingwithswift.com")!, subject: Text("Learn swift here"), message: Text("There is 100 days with SwiftUI course.")) {
-            Label("Share", systemImage: "swift")
+    }
+    
+    private func changeFilter() {
+        
+    }
+    
+    private func loadImage() {
+        Task {
+            // Get the raw data from selectedImage
+            guard let imageData = try await selectedImage?.loadTransferable(type: Data.self) else { return }
+            //Get inputImage by converting imageData to UI Image using UIImage
+            guard let inputImage = UIImage(data: imageData) else { return }
+            
+            
         }
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
     private func addItem() {
         withAnimation {
             let newItem = Item(timestamp: Date())
@@ -70,6 +105,8 @@ struct ContentView: View {
             }
         }
     }
+    
+    
 }
 
 #Preview {
