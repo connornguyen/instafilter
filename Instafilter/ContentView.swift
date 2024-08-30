@@ -5,6 +5,8 @@
 //  Created by Apple on 29/08/2024.
 //
 
+import CoreImage
+import CoreImage.CIFilterBuiltins
 import SwiftUI
 import SwiftData
 import PhotosUI
@@ -18,6 +20,9 @@ struct ContentView: View {
     @State private var selectedImage: PhotosPickerItem?
     @State private var filterIntensity = 0.0
     @State private var processedImage: Image?
+    
+    @State private var currentFilter = CIFilter.sepiaTone()
+    let context = CIContext()
     
     var body: some View {
         NavigationStack {
@@ -38,13 +43,6 @@ struct ContentView: View {
                 Spacer()
                 
             }
-            /*.onChange(of: $selectedImage) {
-                Task {
-                    if let loadingImage = try await selectedImage?.loadTransferable(type: Image.self) {
-                    }
-                }
-                }
-            } */
             
             Spacer()
             
@@ -52,6 +50,7 @@ struct ContentView: View {
                 Label("Intensity", systemImage: "slider.horizontal.3")
                 Slider(value: $filterIntensity)
             }
+            .onChange(of: filterIntensity, processingFilter)
             
             Spacer()
             
@@ -86,27 +85,29 @@ struct ContentView: View {
             guard let imageData = try await selectedImage?.loadTransferable(type: Data.self) else { return }
             //Get inputImage by converting imageData to UI Image using UIImage
             guard let inputImage = UIImage(data: imageData) else { return }
-            
-            
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+            //Convert UI-> CI
+            let beginImage = CIImage(image: inputImage)
+            currentFilter.setValue(beginImage, forKey: kCIInputImageKey)
+            processingFilter()
         }
     }
     
-    
+    private func processingFilter() {
+        
+        currentFilter.intensity = Float(filterIntensity)
+        
+        //Get raw CI data from the filter
+        guard let outputImage = currentFilter.outputImage else { return }
+        
+        //Convert CI -> CG
+        guard let cgImage = context.createCGImage(outputImage, from: outputImage.extent) else { return }
+        
+        //convert CG -> UI
+        let uiImage = UIImage(cgImage: cgImage)
+        
+        //convert UI -> Swift Image
+        processedImage = Image(uiImage: uiImage)
+    }
 }
 
 #Preview {
