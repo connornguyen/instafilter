@@ -24,6 +24,8 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             VStack {
+                Spacer()
+                
                 PhotosPicker(selection: $selectedImage) {
                     if let processedImage {
                         processedImage
@@ -69,12 +71,13 @@ struct ContentView: View {
                 }
             }
             .confirmationDialog("Changing filter menu", isPresented: $showingChangeFilter) {
-                Button("Sepia tone") {}
-                Button("Pixelate") {}
-                Button("Green") {}
+                Button("Sepia tone") {  setFilter(CIFilter.sepiaTone()) }
+                Button("Pixellate") { setFilter(CIFilter.pixellate()) }
+                Button("Gloom") { setFilter(CIFilter.gloom()) }
+                Button("Vigneete") { setFilter(CIFilter.vignette()) }
                 Button("Cancel" , role: .cancel) {}
             } message: {
-                Text("Change your color")
+                Text("Select your filter")
             }
         }
         .padding()
@@ -83,7 +86,11 @@ struct ContentView: View {
     private func changeFilter() {
         showingChangeFilter.toggle()
     }
-
+    
+    func setFilter(_ filter: CIFilter) {
+        currentFilter = filter
+        loadImage()
+    }
     
     private func loadImage() {
         Task {
@@ -100,7 +107,14 @@ struct ContentView: View {
     
     private func processingFilter() {
         
-        currentFilter.setValue(filterIntensity, forKey: kCIInputIntensityKey)
+        //currentFilter.setValue(filterIntensity, forKey: kCIInputIntensityKey)
+        //This to make sure all the filter works, which is including Intensity, Scale, and Radius
+        let inputKeys = currentFilter.inputKeys
+
+            if inputKeys.contains(kCIInputIntensityKey) {
+                currentFilter.setValue(filterIntensity, forKey: kCIInputIntensityKey) }
+            if inputKeys.contains(kCIInputRadiusKey) { currentFilter.setValue(filterIntensity * 200, forKey: kCIInputRadiusKey) }
+            if inputKeys.contains(kCIInputScaleKey) { currentFilter.setValue(filterIntensity * 10, forKey: kCIInputScaleKey) }
         
         //Get raw CI data from the filter
         guard let outputImage = currentFilter.outputImage else { return }
