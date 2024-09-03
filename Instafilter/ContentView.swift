@@ -12,16 +12,13 @@ import SwiftData
 import PhotosUI
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    
-    @Query private var items: [Item]
-    
     
     @State private var selectedImage: PhotosPickerItem?
     @State private var filterIntensity = 0.0
     @State private var processedImage: Image?
+    @State private var showingChangeFilter = false
     
-    @State private var currentFilter = CIFilter.sepiaTone()
+    @State private var currentFilter: CIFilter = CIFilter.sepiaTone()
     let context = CIContext()
     
     var body: some View {
@@ -39,7 +36,7 @@ struct ContentView: View {
                 .buttonStyle(.plain)  //This help button ignore the color changing when wrapped inside PhotoPicker
                 .onChange(of: selectedImage, loadImage) //Look for change of selectedIamge, then perform loadImage
                 
-                 
+                
                 Spacer()
                 
             }
@@ -56,7 +53,8 @@ struct ContentView: View {
             
             HStack{
                 Button("Change filter", action: changeFilter)
-                    
+                
+                
                 Spacer()
                 
                 ShareLink(item: URL(string: "http://www.hackingwithswift.com")!, subject: Text("Learn swift here"), message: Text("There is 100 days with SwiftUI course.")) {
@@ -67,17 +65,25 @@ struct ContentView: View {
             .navigationTitle("Instafilter")
             .toolbar {
                 PhotosPicker(selection: $selectedImage, matching: .images) {
-                    Label("Select pictures", systemImage: "photo.badge.plus")
+                    Label("Select pictures", systemImage: "photo.on.rectangle.angled")
                 }
+            }
+            .confirmationDialog("Changing filter menu", isPresented: $showingChangeFilter) {
+                Button("Sepia tone") {}
+                Button("Pixelate") {}
+                Button("Green") {}
+                Button("Cancel" , role: .cancel) {}
+            } message: {
+                Text("Change your color")
             }
         }
         .padding()
-        
     }
     
     private func changeFilter() {
-        
+        showingChangeFilter.toggle()
     }
+
     
     private func loadImage() {
         Task {
@@ -94,7 +100,7 @@ struct ContentView: View {
     
     private func processingFilter() {
         
-        currentFilter.intensity = Float(filterIntensity)
+        currentFilter.setValue(filterIntensity, forKey: kCIInputIntensityKey)
         
         //Get raw CI data from the filter
         guard let outputImage = currentFilter.outputImage else { return }
