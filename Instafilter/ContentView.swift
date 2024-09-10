@@ -12,6 +12,8 @@ import SwiftData
 import PhotosUI
 
 struct ContentView: View {
+    @AppStorage("filterCount") var filterCount = 0
+    //@Environment(\.requestReview) var requestReview
     
     @State private var selectedImage: PhotosPickerItem?
     @State private var filterIntensity = 0.0
@@ -59,8 +61,11 @@ struct ContentView: View {
                 
                 Spacer()
                 
-                ShareLink(item: URL(string: "http://www.hackingwithswift.com")!, subject: Text("Learn swift here"), message: Text("There is 100 days with SwiftUI course.")) {
-                    Label("Share", systemImage: "square.and.arrow.up")
+                // this if let means if there is no processedImage, there is no button, or code excecute behind inside the {}
+                if let processedImage {
+                    ShareLink(item: processedImage, preview: SharePreview("Instafilter image", image: processedImage)) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
                 }
             }
             .padding(.horizontal)
@@ -87,6 +92,7 @@ struct ContentView: View {
         showingChangeFilter.toggle()
     }
     
+    // use " _ " when we don't need external label and call the function directly without spectify label
     func setFilter(_ filter: CIFilter) {
         currentFilter = filter
         loadImage()
@@ -106,7 +112,6 @@ struct ContentView: View {
     }
     
     private func processingFilter() {
-        
         //currentFilter.setValue(filterIntensity, forKey: kCIInputIntensityKey)
         //This to make sure all the filter works, which is including Intensity, Scale, and Radius
         let inputKeys = currentFilter.inputKeys
